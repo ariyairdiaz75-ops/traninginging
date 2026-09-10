@@ -1312,15 +1312,35 @@
   function resizeCanvas(){
     const rect = canvas.parentElement.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
-    const h = Math.max(360, rect.height);
-    canvas.width = rect.width * dpr;
-    canvas.height = h * dpr;
-    canvas.style.width = rect.width + "px";
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(360, Math.round(rect.height));
+    const targetW = Math.round(w * dpr);
+    const targetH = Math.round(h * dpr);
+    if(canvas.width === targetW && canvas.height === targetH) { draw(); return; }
+    canvas.width = targetW;
+    canvas.height = targetH;
+    canvas.style.width = w + "px";
     canvas.style.height = h + "px";
     ctx.setTransform(dpr,0,0,dpr,0,0);
     draw();
   }
+  // Browser zoom doesn't reliably fire "resize", and it changes
+  // devicePixelRatio without always changing layout size — either case
+  // left the canvas backing store stale (showing gray/blurry patches).
+  // ResizeObserver + a DPR watcher cover both triggers.
   window.addEventListener("resize", resizeCanvas);
+  if(window.ResizeObserver){
+    new ResizeObserver(()=>resizeCanvas()).observe(canvas.parentElement);
+  }
+  function watchDprChange(){
+    const dpr = window.devicePixelRatio || 1;
+    if(!window.matchMedia) return;
+    const mq = matchMedia(`(resolution: ${dpr}dppx)`);
+    const onChange = ()=>{ resizeCanvas(); watchDprChange(); };
+    if(mq.addEventListener) mq.addEventListener("change", onChange, {once:true});
+    else if(mq.addListener) mq.addListener(onChange);
+  }
+  watchDprChange();
 
   function draw(){
     const w = canvas.clientWidth;
