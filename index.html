@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Futures Simulator (Demo)</title>
+<style>
+  :root{
+    --bg:#0b0e11;
+    --bg2:#0d1117;
+    --panel:#161a1e;
+    --panel2:#1e2329;
+    --border:#2b3139;
+    --text:#eaecef;
+    --text-dim:#848e9c;
+    --green:#0ecb81;
+    --red:#f6465d;
+    --yellow:#f0b90b;
+    --accent:#f0b90b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:13px;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:#2b3139;border-radius:4px;}
+
+  .disclaimer{
+    background:linear-gradient(90deg,#3a2a00,#1a1300);
+    color:var(--yellow);
+    text-align:center;
+    padding:6px 10px;
+    font-size:11.5px;
+    border-bottom:1px solid #4a3900;
+    letter-spacing:.2px;
+  }
+
+  header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    padding:8px 16px;
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+  }
+  .logo{
+    font-weight:800;
+    font-size:18px;
+    color:var(--yellow);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    white-space:nowrap;
+  }
+  .logo .tag{
+    font-size:9px;
+    background:var(--panel2);
+    color:var(--text-dim);
+    padding:2px 6px;
+    border-radius:4px;
+    font-weight:600;
+    letter-spacing:.5px;
+  }
+  .symbol-select{
+    display:flex;
+    gap:4px;
+  }
+  .symbol-btn{
+    background:transparent;
+    border:1px solid transparent;
+    color:var(--text-dim);
+    padding:6px 10px;
+    border-radius:4px;
+    cursor:pointer;
+    font-weight:600;
+    font-size:12.5px;
+  }
+  .symbol-btn.active{
+    background:var(--panel2);
+    color:var(--text);
+    border-color:var(--border);
+  }
+  .header-spacer{flex:1;}
+  .balance-box{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:6px 10px;
+  }
+  .balance-box label{color:var(--text-dim);font-size:11px;}
+  .balance-box input{
+    width:110px;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    font-weight:700;
+    font-size:13px;
+    outline:none;
+  }
+  .balance-box button{
+    background:var(--yellow);
+    color:#101317;
+    border:none;
+    border-radius:4px;
+    padding:5px 10px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:11.5px;
+  }
+  .balance-box button:hover{filter:brightness(1.08);}
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto auto;
+    gap:1px;
+    background:var(--border);
+  }
+  .price-strip{
+    grid-column:1 / 2;
+    background:var(--bg2);
+    display:flex;
+    align-items:center;
+    gap:28px;
+    padding:10px 16px;
+    flex-wrap:wrap;
+  }
+  .price-main{
+    font-size:24px;
+    font-weight:700;
+  }
+  .price-main.up{color:var(--green);}
+  .price-main.down{color:var(--red);}
+  .stat{display:flex;flex-direction:column;gap:2px;}
+  .stat .label{color:var(--text-dim);font-size:10.5px;}
+  .stat .value{font-size:12.5px;font-weight:600;}
+
+  .chart-col{
+    grid-column:1 / 2;
+    background:var(--bg2);
+    padding:8px 8px 0 8px;
+    display:flex;
+    flex-direction:column;
+  }
+  .timeframes{
+    display:flex;
+    gap:4px;
+    padding:0 8px 8px 8px;
+  }
+  .tf-btn{
+    background:transparent;
+    border:none;
+    color:var(--text-dim);
+    padding:4px 9px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:11.5px;
+    font-weight:600;
+  }
+  .tf-btn.active{background:var(--panel2);color:var(--yellow);}
+  #chartCanvas{width:100%;display:block;background:var(--bg2);border-radius:4px;}
+
+  .order-col{
+    grid-row: 1 / 3;
+    grid-column: 2 / 3;
+    background:var(--panel);
+    padding:14px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    overflow-y:auto;
+  }
+  .margin-toggle{
+    display:flex;
+    gap:6px;
+  }
+  .margin-toggle button{
+    flex:1;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:6px 0;
+    border-radius:4px;
+    font-size:11.5px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .margin-toggle button.active{color:var(--text);border-color:#3a4048;}
+
+  .lev-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .lev-row .lev-label{color:var(--text-dim);font-size:11.5px;}
+  .lev-input-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:4px 8px;
+  }
+  .lev-input-wrap input{
+    width:56px;
+    background:transparent;
+    border:none;
+    color:var(--yellow);
+    font-weight:700;
+    font-size:13px;
+    outline:none;
+  }
+  .lev-input-wrap span{color:var(--text-dim);font-size:12px;}
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:4px;
+    border-radius:2px;
+    background:var(--border);
+    outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:14px;height:14px;border-radius:50%;
+    background:var(--yellow);cursor:pointer;
+    border:2px solid #101317;
+  }
+
+  .field label{
+    display:block;
+    color:var(--text-dim);
+    font-size:11px;
+    margin-bottom:5px;
+  }
+  .amount-wrap{
+    display:flex;
+    align-items:center;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .amount-wrap input{
+    flex:1;
+    background:transparent;
+    border:none;
+    color:var(--text);
+    padding:9px 10px;
+    font-size:14px;
+    font-weight:600;
+    outline:none;
+  }
+  .amount-wrap .unit{
+    padding:0 10px;
+    color:var(--text-dim);
+    font-size:11.5px;
+    border-left:1px solid var(--border);
+    height:100%;
+    display:flex;
+    align-items:center;
+  }
+  .pct-row{
+    display:flex;
+    gap:6px;
+  }
+  .pct-row button{
+    flex:1;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    padding:5px 0;
+    border-radius:4px;
+    font-size:11px;
+    cursor:pointer;
+  }
+  .pct-row button:hover{color:var(--text);}
+
+  .order-info{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+    font-size:11.5px;
+    color:var(--text-dim);
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:4px;
+    padding:8px 10px;
+  }
+  .order-info div{display:flex;justify-content:space-between;}
+  .order-info span.v{color:var(--text);font-weight:600;}
+
+  .trade-btns{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:4px;
+  }
+  .btn-long, .btn-short{
+    border:none;
+    padding:12px 0;
+    border-radius:6px;
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    color:#fff;
+  }
+  .btn-long{background:var(--green);}
+  .btn-long:hover{background:#0eb877;}
+  .btn-short{background:var(--red);}
+  .btn-short:hover{background:#e0384f;}
+  .btn-long:disabled, .btn-short:disabled{
+    background:#333a42;
+    color:#666;
+    cursor:not-allowed;
+  }
+
+  .bottom-panel{
+    grid-column:1 / 2;
+    background:var(--bg2);
+    border-top:1px solid var(--border);
+    padding:10px 14px 16px 14px;
+  }
+  .bottom-tabs{
+    display:flex;
+    gap:18px;
+    border-bottom:1px solid var(--border);
+    margin-bottom:10px;
+  }
+  .bottom-tabs button{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    padding:8px 2px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .bottom-tabs button.active{color:var(--text);border-bottom-color:var(--yellow);}
+
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  thead th{
+    text-align:left;
+    color:var(--text-dim);
+    font-weight:500;
+    padding:6px 8px;
+    border-bottom:1px solid var(--border);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:9px 8px;
+    border-bottom:1px solid #1c2126;
+    white-space:nowrap;
+  }
+  .side-long{color:var(--green);font-weight:700;}
+  .side-short{color:var(--red);font-weight:700;}
+  .pnl-pos{color:var(--green);font-weight:700;}
+  .pnl-neg{color:var(--red);font-weight:700;}
+  .close-btn{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:5px 12px;
+    border-radius:4px;
+    cursor:pointer;
+    font-size:11px;
+    font-weight:600;
+  }
+  .close-btn:hover{border-color:var(--yellow);color:var(--yellow);}
+  .empty-row td{
+    text-align:center;
+    color:var(--text-dim);
+    padding:26px 0;
+  }
+
+  @media (max-width: 900px){
+    .layout{grid-template-columns:1fr;}
+    .order-col{grid-row:auto;grid-column:1/2;}
+    .price-strip, .chart-col, .bottom-panel{grid-column:1/2;}
+  }
+</style>
+</head>
+<body>
+
+<div class="disclaimer">⚠ SIMULADOR — dinero ficticio, sin conexión a exchanges reales. No es Binance ni está afiliado a Binance. Solo para practicar/entretenimiento, no uses esto para tomar decisiones de inversión real.</div>
+
+<header>
+  <div class="logo">FUTURES <span style="color:var(--text)">SIM</span><span class="tag">DEMO</span></div>
+  <div class="symbol-select" id="symbolSelect"></div>
+  <div class="header-spacer"></div>
+  <div class="balance-box">
+    <label>Balance</label>
+    <input type="number" id="balanceInput" value="10000" step="100">
+    <button id="setBalanceBtn">Ajustar</button>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="price-strip">
+    <div class="price-main up" id="priceMain">0.00</div>
+    <div class="stat"><div class="label">Cambio 24h</div><div class="value" id="chg24">+0.00%</div></div>
+    <div class="stat"><div class="label">Máx 24h</div><div class="value" id="high24">-</div></div>
+    <div class="stat"><div class="label">Mín 24h</div><div class="value" id="low24">-</div></div>
+    <div class="stat"><div class="label">Volumen</div><div class="value" id="vol24">-</div></div>
+    <div class="stat"><div class="label">Equity</div><div class="value" id="equityVal">$10,000.00</div></div>
+  </div>
+
+  <div class="chart-col">
+    <div class="timeframes" id="timeframes">
+      <button class="tf-btn" data-speed="2200">1m</button>
+      <button class="tf-btn active" data-speed="1200">5m</button>
+      <button class="tf-btn" data-speed="600">15m</button>
+      <button class="tf-btn" data-speed="250">1h</button>
+    </div>
+    <canvas id="chartCanvas" height="440"></canvas>
+  </div>
+
+  <div class="order-col">
+    <div class="margin-toggle">
+      <button class="active" id="crossBtn">Cross</button>
+      <button id="isoBtn">Isolated</button>
+    </div>
+
+    <div class="lev-row">
+      <span class="lev-label">Apalancamiento</span>
+      <div class="lev-input-wrap">
+        <input type="number" id="levNumber" value="20" min="1">
+        <span>x</span>
+      </div>
+    </div>
+    <input type="range" id="levSlider" min="1" max="200" value="20">
+
+    <div class="field">
+      <label>Monto a invertir</label>
+      <div class="amount-wrap">
+        <input type="number" id="amountInput" value="100" min="1" step="1">
+        <div class="unit">USDT</div>
+      </div>
+    </div>
+    <div class="pct-row">
+      <button data-pct="25">25%</button>
+      <button data-pct="50">50%</button>
+      <button data-pct="75">75%</button>
+      <button data-pct="100">100%</button>
+    </div>
+
+    <div class="order-info">
+      <div><span>Valor de posición</span><span class="v" id="posValue">$2,000.00</span></div>
+      <div><span>Precio de entrada (est.)</span><span class="v" id="estEntry">-</span></div>
+      <div><span>Liquidación (est.)</span><span class="v" id="estLiq">-</span></div>
+    </div>
+
+    <div class="trade-btns">
+      <button class="btn-long" id="longBtn">Abrir Long ↑</button>
+      <button class="btn-short" id="shortBtn">Abrir Short ↓</button>
+    </div>
+
+    <div style="color:var(--text-dim);font-size:10.5px;line-height:1.5;margin-top:4px;">
+      * Simulación: al abrir una orden, el precio del gráfico tiende a moverse a tu favor. Al cerrarla, tiende a revertirse. Es un juego de práctica, no un reflejo del mercado real.
+    </div>
+  </div>
+
+  <div class="bottom-panel">
+    <div class="bottom-tabs">
+      <button class="active" data-tab="open">Posiciones abiertas (<span id="openCount">0</span>)</button>
+      <button data-tab="hist">Historial</button>
+    </div>
+    <div id="openPanel">
+      <table>
+        <thead>
+          <tr><th>Símbolo</th><th>Lado</th><th>Tamaño</th><th>Apalanc.</th><th>Entrada</th><th>Marca</th><th>PNL (USDT)</th><th>PNL %</th><th></th></tr>
+        </thead>
+        <tbody id="openBody">
+          <tr class="empty-row"><td colspan="9">No tienes posiciones abiertas</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="histPanel" style="display:none;">
+      <table>
+        <thead>
+          <tr><th>Símbolo</th><th>Lado</th><th>Tamaño</th><th>Apalanc.</th><th>Entrada</th><th>Cierre</th><th>PNL (USDT)</th><th>PNL %</th><th>Hora</th></tr>
+        </thead>
+        <tbody id="histBody">
+          <tr class="empty-row"><td colspan="9">Sin operaciones cerradas aún</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Symbols ----------
+  const SYMBOLS = {
+    "BTCUSDT": { name:"BTC/USDT", base:65000, vol:0.0009 },
+    "ETHUSDT": { name:"ETH/USDT", base:3200,  vol:0.0012 },
+    "SOLUSDT": { name:"SOL/USDT", base:145,   vol:0.0020 },
+    "BNBUSDT": { name:"BNB/USDT", base:580,   vol:0.0014 },
+  };
+  let currentSymbol = "BTCUSDT";
+
+  const symbolSelectEl = document.getElementById("symbolSelect");
+  Object.keys(SYMBOLS).forEach(key=>{
+    const b = document.createElement("button");
+    b.className = "symbol-btn" + (key===currentSymbol ? " active":"");
+    b.textContent = SYMBOLS[key].name;
+    b.dataset.sym = key;
+    b.addEventListener("click", ()=>switchSymbol(key));
+    symbolSelectEl.appendChild(b);
+  });
+
+  function switchSymbol(key){
+    if(position){ alert("Cierra tu posición abierta antes de cambiar de símbolo."); return; }
+    currentSymbol = key;
+    [...symbolSelectEl.children].forEach(b=> b.classList.toggle("active", b.dataset.sym===key));
+    initChartData();
+  }
+
+  // ---------- State ----------
+  let balance = 10000;
+  let candles = [];
+  let forming = null;
+  let price = 0;
+  let dayOpen = 0;
+  let dayHigh = 0;
+  let dayLow = 0;
+  let dayVol = 0;
+
+  let biasState = "neutral"; // neutral | favor | reverse
+  let biasDir = 0;           // +1 up, -1 down
+  let reverseTicksLeft = 0;
+
+  let position = null; // { side, amount, leverage, entry, size, liq }
+  let history = [];
+
+  let ticksPerCandle = 6;
+  let tickCounter = 0;
+  let tickIntervalMs = 1200 / 6;
+  let tickTimer = null;
+
+  const MAX_CANDLES = 90;
+
+  function fmt(n, d=2){
+    return Number(n).toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+  }
+  function priceDecimals(p){
+    if(p >= 1000) return 2;
+    if(p >= 10) return 3;
+    return 4;
+  }
+
+  function initChartData(){
+    const cfg = SYMBOLS[currentSymbol];
+    price = cfg.base;
+    dayOpen = cfg.base;
+    dayHigh = cfg.base;
+    dayLow = cfg.base;
+    dayVol = Math.random()*50000 + 20000;
+    candles = [];
+    const now = Date.now();
+    let p = cfg.base;
+    for(let i=MAX_CANDLES;i>0;i--){
+      const o = p;
+      const chg = (Math.random()-0.5) * cfg.vol * 6 * o;
+      const c = o + chg;
+      const h = Math.max(o,c) + Math.random()*cfg.vol*3*o;
+      const l = Math.min(o,c) - Math.random()*cfg.vol*3*o;
+      candles.push({t: now - i*60000, o, h, l, c, v: Math.random()*100+10});
+      p = c;
+    }
+    price = candles[candles.length-1].c;
+    forming = { t: Date.now(), o: price, h: price, l: price, c: price, v: 0 };
+    dayHigh = Math.max(...candles.map(c=>c.h));
+    dayLow = Math.min(...candles.map(c=>c.l));
+    biasState = "neutral";
+    biasDir = 0;
+    reverseTicksLeft = 0;
+    updateHeaderStats();
+    draw();
+  }
+
+  // ---------- Tick / simulation ----------
+  function tick(){
+    const cfg = SYMBOLS[currentSymbol];
+    const noiseAmp = price * cfg.vol;
+    let drift = (Math.random()-0.5) * 2 * noiseAmp * 0.5;
+
+    if(biasState === "favor"){
+      const strength = 0.7 + Math.random()*0.9;
+      drift += biasDir * noiseAmp * strength;
+    } else if(biasState === "reverse"){
+      const strength = 0.5 + Math.random()*0.7;
+      drift += biasDir * noiseAmp * strength;
+      reverseTicksLeft--;
+      if(reverseTicksLeft <= 0){
+        biasState = "neutral";
+        biasDir = 0;
+      }
+    }
+
+    price = Math.max(price + drift, 0.0001);
+
+    forming.h = Math.max(forming.h, price);
+    forming.l = Math.min(forming.l, price);
+    forming.c = price;
+    forming.v += Math.random()*3;
+
+    dayHigh = Math.max(dayHigh, price);
+    dayLow = Math.min(dayLow, price);
+    dayVol += Math.random()*5;
+
+    tickCounter++;
+    if(tickCounter >= ticksPerCandle){
+      tickCounter = 0;
+      candles.push(forming);
+      if(candles.length > MAX_CANDLES) candles.shift();
+      forming = { t: Date.now(), o: price, h: price, l: price, c: price, v:0 };
+    }
+
+    updateHeaderStats();
+    updatePositionPnl();
+    draw();
+  }
+
+  function restartTimer(){
+    if(tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(tick, tickIntervalMs);
+  }
+
+  document.querySelectorAll(".tf-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tf-btn").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      tickIntervalMs = Number(btn.dataset.speed) / 6;
+      restartTimer();
+    });
+  });
+
+  // ---------- Header stats ----------
+  function updateHeaderStats(){
+    const dec = priceDecimals(price);
+    const priceMainEl = document.getElementById("priceMain");
+    priceMainEl.textContent = fmt(price, dec);
+    const chg = ((price - dayOpen) / dayOpen) * 100;
+    priceMainEl.classList.toggle("up", chg>=0);
+    priceMainEl.classList.toggle("down", chg<0);
+    const chgEl = document.getElementById("chg24");
+    chgEl.textContent = (chg>=0?"+":"") + chg.toFixed(2) + "%";
+    chgEl.style.color = chg>=0 ? "var(--green)" : "var(--red)";
+    document.getElementById("high24").textContent = fmt(dayHigh, dec);
+    document.getElementById("low24").textContent = fmt(dayLow, dec);
+    document.getElementById("vol24").textContent = fmt(dayVol, 0);
+
+    let equity = balance;
+    if(position) equity += position.unrealized || 0;
+    document.getElementById("equityVal").textContent = "$" + fmt(equity, 2);
+  }
+
+  // ---------- Order form ----------
+  const levNumber = document.getElementById("levNumber");
+  const levSlider = document.getElementById("levSlider");
+  const amountInput = document.getElementById("amountInput");
+
+  levNumber.addEventListener("input", ()=>{
+    let v = Number(levNumber.value) || 1;
+    if(v < 1) v = 1;
+    if(v <= 200) levSlider.value = v;
+    updateOrderInfo();
+  });
+  levSlider.addEventListener("input", ()=>{
+    levNumber.value = levSlider.value;
+    updateOrderInfo();
+  });
+  amountInput.addEventListener("input", updateOrderInfo);
+
+  document.querySelectorAll(".pct-row button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const pct = Number(btn.dataset.pct)/100;
+      amountInput.value = Math.max(1, Math.floor(balance * pct));
+      updateOrderInfo();
+    });
+  });
+
+  function updateOrderInfo(){
+    const amt = Math.max(0, Number(amountInput.value) || 0);
+    const lev = Math.max(1, Number(levNumber.value) || 1);
+    const size = amt * lev;
+    document.getElementById("posValue").textContent = "$" + fmt(size, 2);
+    document.getElementById("estEntry").textContent = fmt(price, priceDecimals(price));
+    const liqLong = price * (1 - 1/lev);
+    document.getElementById("estLiq").textContent = fmt(Math.max(liqLong,0), priceDecimals(price)) + " (long)";
+  }
+
+  document.getElementById("longBtn").addEventListener("click", ()=>openPosition("long"));
+  document.getElementById("shortBtn").addEventListener("click", ()=>openPosition("short"));
+
+  function openPosition(side){
+    if(position){ alert("Ya tienes una posición abierta. Ciérrala antes de abrir otra."); return; }
+    const amt = Number(amountInput.value);
+    const lev = Number(levNumber.value);
+    if(!amt || amt <= 0){ alert("Ingresa un monto válido."); return; }
+    if(!lev || lev < 1){ alert("Ingresa un apalancamiento válido."); return; }
+    if(amt > balance){ alert("El monto supera tu balance disponible."); return; }
+
+    const size = amt * lev;
+    const liq = side === "long" ? price * (1 - 1/lev) : price * (1 + 1/lev);
+
+    position = {
+      symbol: currentSymbol,
+      side, amount: amt, leverage: lev,
+      entry: price, size, liq,
+      unrealized: 0,
+      openedAt: Date.now()
+    };
+
+    biasDir = side === "long" ? 1 : -1;
+    biasState = "favor";
+    reverseTicksLeft = 0;
+
+    setTradeButtonsEnabled(false);
+    renderOpenPositions();
+  }
+
+  function updatePositionPnl(){
+    if(!position) return;
+    const dir = position.side === "long" ? 1 : -1;
+    const priceChangePct = (price - position.entry) / position.entry;
+    const pnl = priceChangePct * dir * position.size;
+    position.unrealized = pnl;
+    position.pnlPct = (pnl / position.amount) * 100;
+    renderOpenPositions();
+  }
+
+  function closePosition(){
+    if(!position) return;
+    const dir = position.side === "long" ? 1 : -1;
+    const priceChangePct = (price - position.entry) / position.entry;
+    const pnl = priceChangePct * dir * position.size;
+
+    balance += pnl;
+    document.getElementById("balanceInput").value = balance.toFixed(2);
+
+    history.unshift({
+      symbol: position.symbol,
+      side: position.side,
+      size: position.size,
+      leverage: position.leverage,
+      entry: position.entry,
+      exit: price,
+      pnl,
+      pnlPct: (pnl / position.amount) * 100,
+      time: new Date().toLocaleTimeString()
+    });
+
+    biasDir = -dir;
+    biasState = "reverse";
+    reverseTicksLeft = 14 + Math.floor(Math.random()*8);
+
+    position = null;
+    setTradeButtonsEnabled(true);
+    renderOpenPositions();
+    renderHistory();
+    updateHeaderStats();
+  }
+
+  function setTradeButtonsEnabled(enabled){
+    document.getElementById("longBtn").disabled = !enabled;
+    document.getElementById("shortBtn").disabled = !enabled;
+  }
+
+  function renderOpenPositions(){
+    const body = document.getElementById("openBody");
+    document.getElementById("openCount").textContent = position ? "1" : "0";
+    if(!position){
+      body.innerHTML = '<tr class="empty-row"><td colspan="9">No tienes posiciones abiertas</td></tr>';
+      return;
+    }
+    const dec = priceDecimals(price);
+    const pnlClass = position.unrealized >= 0 ? "pnl-pos" : "pnl-neg";
+    body.innerHTML = `
+      <tr>
+        <td>${SYMBOLS[position.symbol].name}</td>
+        <td class="${position.side==='long'?'side-long':'side-short'}">${position.side==='long'?'LONG':'SHORT'}</td>
+        <td>$${fmt(position.size,2)}</td>
+        <td>${position.leverage}x</td>
+        <td>${fmt(position.entry,dec)}</td>
+        <td>${fmt(price,dec)}</td>
+        <td class="${pnlClass}">${position.unrealized>=0?'+':''}${fmt(position.unrealized,2)}</td>
+        <td class="${pnlClass}">${position.pnlPct>=0?'+':''}${fmt(position.pnlPct,2)}%</td>
+        <td><button class="close-btn" id="closeBtn">Cerrar</button></td>
+      </tr>`;
+    document.getElementById("closeBtn").addEventListener("click", closePosition);
+  }
+
+  function renderHistory(){
+    const body = document.getElementById("histBody");
+    if(history.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="9">Sin operaciones cerradas aún</td></tr>';
+      return;
+    }
+    body.innerHTML = history.slice(0,30).map(h=>{
+      const dec = priceDecimals(h.entry);
+      const pnlClass = h.pnl >= 0 ? "pnl-pos" : "pnl-neg";
+      return `<tr>
+        <td>${SYMBOLS[h.symbol].name}</td>
+        <td class="${h.side==='long'?'side-long':'side-short'}">${h.side==='long'?'LONG':'SHORT'}</td>
+        <td>$${fmt(h.size,2)}</td>
+        <td>${h.leverage}x</td>
+        <td>${fmt(h.entry,dec)}</td>
+        <td>${fmt(h.exit,dec)}</td>
+        <td class="${pnlClass}">${h.pnl>=0?'+':''}${fmt(h.pnl,2)}</td>
+        <td class="${pnlClass}">${h.pnlPct>=0?'+':''}${fmt(h.pnlPct,2)}%</td>
+        <td>${h.time}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  document.querySelectorAll(".bottom-tabs button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".bottom-tabs button").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      document.getElementById("openPanel").style.display = tab==="open" ? "block":"none";
+      document.getElementById("histPanel").style.display = tab==="hist" ? "block":"none";
+    });
+  });
+
+  // ---------- Balance control ----------
+  document.getElementById("setBalanceBtn").addEventListener("click", ()=>{
+    const v = Number(document.getElementById("balanceInput").value);
+    if(!isNaN(v) && v >= 0){
+      balance = v;
+      updateOrderInfo();
+      updateHeaderStats();
+    }
+  });
+
+  // ---------- Margin toggle (cosmetic) ----------
+  document.getElementById("crossBtn").addEventListener("click", ()=>{
+    document.getElementById("crossBtn").classList.add("active");
+    document.getElementById("isoBtn").classList.remove("active");
+  });
+  document.getElementById("isoBtn").addEventListener("click", ()=>{
+    document.getElementById("isoBtn").classList.add("active");
+    document.getElementById("crossBtn").classList.remove("active");
+  });
+
+  // ---------- Chart rendering ----------
+  const canvas = document.getElementById("chartCanvas");
+  const ctx = canvas.getContext("2d");
+
+  function resizeCanvas(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = rect.width * dpr;
+    canvas.height = 440 * dpr;
+    canvas.style.width = rect.width + "px";
+    canvas.style.height = "440px";
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    draw();
+  }
+  window.addEventListener("resize", resizeCanvas);
+
+  function draw(){
+    const w = canvas.clientWidth;
+    const h = 440;
+    const volH = 70;
+    const mainH = h - volH - 10;
+    ctx.clearRect(0,0,w,h);
+
+    const allCandles = candles.concat(forming ? [forming] : []);
+    if(allCandles.length === 0) return;
+
+    const visible = allCandles.slice(-MAX_CANDLES);
+    let maxP = -Infinity, minP = Infinity, maxV = 0;
+    visible.forEach(c=>{
+      maxP = Math.max(maxP, c.h);
+      minP = Math.min(minP, c.l);
+      maxV = Math.max(maxV, c.v);
+    });
+    const pad = (maxP - minP) * 0.08 || maxP*0.01;
+    maxP += pad; minP -= pad;
+
+    const rightAxisW = 70;
+    const chartW = w - rightAxisW;
+    const candleW = chartW / visible.length;
+    const bodyW = Math.max(2, candleW * 0.6);
+
+    function yFor(p){
+      return 8 + (maxP - p) / (maxP - minP) * mainH;
+    }
+
+    // grid
+    ctx.strokeStyle = "#1c2126";
+    ctx.lineWidth = 1;
+    ctx.font = "10px -apple-system, sans-serif";
+    ctx.fillStyle = "#5c6673";
+    for(let i=0;i<=4;i++){
+      const gy = 8 + (mainH/4)*i;
+      ctx.beginPath();
+      ctx.moveTo(0, gy);
+      ctx.lineTo(chartW, gy);
+      ctx.stroke();
+      const gp = maxP - (maxP-minP)*(i/4);
+      ctx.fillText(fmt(gp, priceDecimals(gp)), chartW+6, gy+3);
+    }
+
+    // candles
+    visible.forEach((c,i)=>{
+      const x = i*candleW + candleW/2;
+      const isUp = c.c >= c.o;
+      ctx.strokeStyle = isUp ? "#0ecb81" : "#f6465d";
+      ctx.fillStyle = isUp ? "#0ecb81" : "#f6465d";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, yFor(c.h));
+      ctx.lineTo(x, yFor(c.l));
+      ctx.stroke();
+      const yO = yFor(c.o), yC = yFor(c.c);
+      const top = Math.min(yO,yC);
+      const bh = Math.max(1, Math.abs(yC-yO));
+      ctx.fillRect(x - bodyW/2, top, bodyW, bh);
+    });
+
+    // current price line
+    const cpY = yFor(price);
+    ctx.strokeStyle = "#f0b90b";
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(0, cpY);
+    ctx.lineTo(chartW, cpY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#101317";
+    ctx.fillRect(chartW, cpY-8, rightAxisW, 16);
+    ctx.fillStyle = "#f0b90b";
+    ctx.fillRect(chartW, cpY-8, 3, 16);
+    ctx.fillStyle = "#0b0e11";
+    ctx.font = "10px -apple-system, sans-serif";
+
+    // entry line if position open
+    if(position){
+      const eY = yFor(position.entry);
+      ctx.strokeStyle = position.side==="long" ? "#0ecb81" : "#f6465d";
+      ctx.setLineDash([2,4]);
+      ctx.beginPath();
+      ctx.moveTo(0, eY);
+      ctx.lineTo(chartW, eY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // volume
+    const volTop = h - volH;
+    visible.forEach((c,i)=>{
+      const x = i*candleW + candleW/2;
+      const isUp = c.c >= c.o;
+      ctx.fillStyle = isUp ? "rgba(14,203,129,0.5)" : "rgba(246,70,93,0.5)";
+      const vh = maxV > 0 ? (c.v / maxV) * (volH-4) : 0;
+      ctx.fillRect(x - bodyW/2, h - vh, bodyW, vh);
+    });
+
+    // price label text over axis box
+    ctx.fillStyle = "#101317";
+    ctx.font = "11px -apple-system, sans-serif";
+    const dec = priceDecimals(price);
+    ctx.fillStyle = "#0b0e11";
+    ctx.fillStyle = "#0b0e11";
+    ctx.fillStyle = "#f0b90b";
+    ctx.fillStyle = "#0b0e11";
+    ctx.font = "10.5px -apple-system, sans-serif";
+    ctx.fillStyle = "#101317";
+    ctx.fillText(fmt(price,dec), chartW+6, cpY+4);
+  }
+
+  // ---------- Init ----------
+  initChartData();
+  updateOrderInfo();
+  resizeCanvas();
+  restartTimer();
+  setInterval(()=>{ if(position){ renderOpenPositions(); } }, 900);
+
+})();
+</script>
+</body>
+</html>
