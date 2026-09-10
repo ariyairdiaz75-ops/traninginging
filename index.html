@@ -132,6 +132,7 @@
     border-bottom:1px solid var(--border);
     flex-wrap:wrap;
   }
+  .symbol-chip-wrap{position:relative;}
   .symbol-chip{
     display:flex;
     align-items:center;
@@ -142,6 +143,28 @@
   }
   .symbol-chip .star{color:var(--text-dim2);}
   .symbol-chip .perp{color:var(--text-dim);font-size:11px;font-weight:600;background:var(--panel2);padding:1px 5px;border-radius:3px;}
+  .symbol-dropdown{
+    display:none;
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:4px;
+    min-width:140px;
+    z-index:20;
+    box-shadow:0 8px 20px rgba(0,0,0,.4);
+  }
+  .symbol-dropdown.open{display:block;}
+  .symbol-dropdown button{
+    display:block;width:100%;text-align:left;
+    background:none;border:none;color:var(--text-dim);
+    padding:7px 10px;border-radius:4px;cursor:pointer;
+    font-size:12.5px;font-weight:600;
+  }
+  .symbol-dropdown button:hover{background:var(--panel3);color:var(--text);}
+  .symbol-dropdown button.active{color:var(--yellow);}
   .price-block{display:flex;flex-direction:column;gap:1px;min-width:90px;}
   .price-block .p{font-size:20px;font-weight:700;}
   .price-block .p.up{color:var(--green);}
@@ -570,7 +593,10 @@
 </div>
 
 <div class="stats-bar">
-  <div class="symbol-chip" id="symbolChip"><span class="star">☆</span><span id="symLabel">BTCUSDT</span><span class="perp">Perp</span><span>▾</span></div>
+  <div class="symbol-chip-wrap">
+    <div class="symbol-chip" id="symbolChip"><span class="star">☆</span><span id="symLabel">BTCUSDT</span><span class="perp">Perp</span><span>▾</span></div>
+    <div class="symbol-dropdown" id="symbolDropdown"></div>
+  </div>
   <div class="price-block">
     <div class="p up" id="priceMain">0.00</div>
     <div class="c" id="chg24">+0.00%</div>
@@ -596,8 +622,6 @@
       <button data-ctab="auditoria">Auditoría</button>
     </div>
     <div class="chart-toolbar">
-      <div class="symbol-select" id="symbolSelect"></div>
-      <div class="tb-sep"></div>
       <button class="tf-btn" data-speed="4000">1s</button>
       <button class="tf-btn" data-speed="2200">15m</button>
       <button class="tf-btn active" data-speed="1200">1h</button>
@@ -826,20 +850,26 @@
   };
   let currentSymbol = "BTCUSDT";
 
-  const symbolSelectEl = document.getElementById("symbolSelect");
+  const symbolDropdownEl = document.getElementById("symbolDropdown");
   Object.keys(SYMBOLS).forEach(key=>{
     const b = document.createElement("button");
-    b.className = "tf-btn" + (key===currentSymbol ? " active":"");
-    b.textContent = SYMBOLS[key].name.replace("/","");
+    b.className = key===currentSymbol ? "active":"";
+    b.textContent = SYMBOLS[key].name.replace("/","") + " Perp";
     b.dataset.sym = key;
-    b.addEventListener("click", ()=>switchSymbol(key));
-    symbolSelectEl.appendChild(b);
+    b.addEventListener("click", ()=>{ switchSymbol(key); symbolDropdownEl.classList.remove("open"); });
+    symbolDropdownEl.appendChild(b);
   });
+
+  document.getElementById("symbolChip").addEventListener("click", (e)=>{
+    e.stopPropagation();
+    symbolDropdownEl.classList.toggle("open");
+  });
+  document.addEventListener("click", ()=> symbolDropdownEl.classList.remove("open"));
 
   function switchSymbol(key){
     if(position){ alert("Cierra tu posición abierta antes de cambiar de símbolo."); return; }
     currentSymbol = key;
-    [...symbolSelectEl.children].forEach(b=> b.classList.toggle("active", b.dataset.sym===key));
+    [...symbolDropdownEl.children].forEach(b=> b.classList.toggle("active", b.dataset.sym===key));
     document.getElementById("symLabel").textContent = key;
     initChartData();
   }
